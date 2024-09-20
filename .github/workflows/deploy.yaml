@@ -29,8 +29,8 @@ jobs:
 
       - name: Kustomize
         uses: imranismail/setup-kustomize@v2
-        with: 
-          kustomize-version: v5.1.1
+        # with: 
+        #   kustomize-version: v5.1.1
 
       - name: Checkout GitOps
         uses: actions/checkout@v4

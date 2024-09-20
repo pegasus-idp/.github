@@ -35,7 +35,7 @@ jobs:
       - name: Checkout GitOps
         uses: actions/checkout@v4
         with:
-          repository: paulofponciano-idp/gitops
+          repository: pegasus-idp/gitops
           token: ${{ secrets.GH_PAT }}
 
       - name: Update k8s kustomization

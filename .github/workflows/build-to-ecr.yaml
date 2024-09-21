@@ -1,0 +1,64 @@
+name: Build to ECR
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Set Docker Image Tag"
+        required: true  
+        type: string
+      repository:
+        description: "Set Repository Name"
+        required: true  
+        type: string
+      url:
+        description: "Set Project URL"
+        required: true  
+        type: string
+      app_env:
+        description: "Set App Env GitHub Context"
+        required: true  
+        type: string
+    
+jobs: 
+    build: 
+      name: Build and Push Docker Image
+      if: ${{ inputs.app_env == 'dev' || inputs.app_env == 'hml' }}
+      runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps: 
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::310240692520:role/GITHUB-ACTIONS-ECR
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create new Amazon ECR repository
+        id: create-ecr-repo
+        run: |
+          #!/bin/bash
+
+          if aws ecr describe-repositories --repository-names ${{ inputs.repository }} --region us-east-1 >/dev/null 2>&1; then
+              echo "Repository already exists..."
+          else
+              aws ecr create-repository --repository-name ${{ inputs.repository }} --region us-east-1
+          fi
+
+          echo "repository=$(echo ${{ inputs.repository }})" >> $GITHUB_OUTPUT
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ steps.create-ecr-repo.outputs.repository }}
+          IMAGE_TAG: ${{ inputs.tag }}
+        run: |
+          docker image build . --tag $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
